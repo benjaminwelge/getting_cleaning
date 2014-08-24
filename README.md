@@ -1,122 +1,23 @@
 ### Description on how run_analysis.R works
 
-run_analysis <- function(){
+First the script makes sure some dependencies are met. For instance: require("data.table"). We obviously don't have to create our working-directory every time, so the script checks if it already exists. If not, it create it: dir.create("C:\\data")
 
-	###############################
-	## This script accomplishes the following tasks:
-	###############################
-	## 1. Merges the training and the test sets to create one data set.
-	## 2. Extracts only the measurements on the mean and standard deviation for each measurement. 
-	## 3. Uses descriptive activity names to name the activities in the data set
-	## 4. Appropriately labels the data set with descriptive variable names. 
-	## 5. Creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+Then the script sets the working directory and specify the URL of the orginal data set. If the data-set haven't been downloaded already, the script will do a fresh download. This was for testing, when the script was run several times in order to shorten the run time.
 
-	## making sure some dependencies are met
-	require("data.table")
+When the file was downloaded or existed it will be unzipped with default settings. The next step is to read the meta data from the dataset. Now the script begins to read the original files, beginning with the features.txt file which contains column names. In the next step it extracts only the second column, so we actually just have the column names, and applies it to the variable.
 
-	## we obviously don't have to create the directory every time - so we check if it already exists. If not we create it
-	if(!file.exists("C:\\data")){
+Now the script begins to read the activity_labels.txt file, which contains the correct labels for the activity numbers used in the dataset. Like before the script only extracts the second column again, and reapplies.
 
-		dir.create("C:\\data")
-	}
-	
-	## here we set the working directory and specify the URL of the orginal data set	
-	setwd("C:\\data\\")
-      fileUrl = "http://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
-	
-	## if we haven't downloaded the dataset already, we download it. This was for testing, when the script was run several times
-	if(!file.exists("C:\\data\\UCI_HAR_Dataset.zip")){
+In the following steop the script reads in the first test data set from the file named X_text.txt. Since we already read the meta data, the script also assures that a proper column names gets applied:  colnames(data_test_x) <- col_names
 
-		download.file(fileUrl, destfile = "./UCI_HAR_Dataset.zip", method = "auto")
-	}
+Now the scipt reads the next dataset from the file y_test.txt and again it makes sure this data set gets a proper label assigned as well - we name it "Activity". Now we read the last dataset from the test data from the file subject_test.txt. The scipt also applies a proper column name here and calls it "Subject".
 
-	## When the file is downloaded or already existed, we unzip it with standard settings
-	unzip("./UCI_HAR_Dataset.zip")
+The whole process of reading in the test data will be repeated once more for the training dataset, which can be found in the following files: X_text.txt, y_train.txt and subject_train.txt
 
-	########################
-	## Read in the meta-data
-	########################
-	## now we begin to read the original files, beginning with the features.txt file which contains most column names
-	col_labels <- read.table("C:\\data\\UCI HAR Dataset\\features.txt", header = FALSE)
-      
-	## now extract only the second column, so we actually just have the column names
-	col_names <- col_labels$V2
-	
-	## now we begin to read the activity_labels.txt file, which contains the correct labels for the activity numbers used in the dataset
-	activity_labels <- read.table("C:\\data\\UCI HAR Dataset\\activity_labels.txt", header = FALSE)
-	
-	## now we extract only the second column again, so we actually just have the column names
-      activity_names <- activity_labels$V2
+The next big step is about merging the data from the test and training dataset together in one big dataset. The script starts by stitching together all three test data sets using the cbind command. The same process will be done for the training data sets. Now we have one big training and one big test data set. At the very end we use the rbind command to stitch both data sets together to one big data set, which we call all_data.
 
-	#############################
-	## Read in the actual user data from test dataset
-	#############################
-	## now we read in the first test data set from the file X_text.txt
-	data_test_x <- read.table("C:\\data\\UCI HAR Dataset\\test\\X_test.txt", header = FALSE)
-	
-	## we also apply the proper column names directly as we already read them from the meta data files
-	colnames(data_test_x) <- col_names
-	
-	## now we read the next dataset from the file y_test.txt
-	data_test_y <- read.table("C:\\data\\UCI HAR Dataset\\test\\y_test.txt", header = FALSE)
-	
-	## again we make sure this data set gets a proper label as well - we name it "Activity"
-      colnames(data_test_y) <- c("Activity")
-	
-	## now we read the last dataset from the test data from the file subject_test.txt
-	data_test_subject <- read.table("C:\\data\\UCI HAR Dataset\\test\\subject_test.txt", header = FALSE)
-	
-	## we also apply a proper column name here and call it "Subject"
-	colnames(data_test_subject) <- c("Subject")
+As we are only interested in the coloumns that represent mean-values and standard-deviation, we subset these columns from our entire data set. Then we aggregate the relevant data by Subject and Actitvity. Before we can write the new tiday data set to a file, we need to replace the activity codes with acutal meaningful names. For this we use the file activity_names which we read before and apply it.
 
-	##############################
-	## Read in the actual user data from training dataset
-	##############################
-	## now we read in the first training data set from the file X_text.txt
-	data_train_x <- read.table("C:\\data\\UCI HAR Dataset\\train\\X_train.txt", header = FALSE)
+At the end we get one output file called tidy_data_set.txt.
 
-	## we also apply the proper column names directly as we already read them from the meta data files
-	colnames(data_train_x) <- col_names
-
-	## now we read the next dataset from the file y_train.txt
-	data_train_y <- read.table("C:\\data\\UCI HAR Dataset\\train\\y_train.txt", header = FALSE)
-	
-	## again we make sure this data set gets a proper label as well - we name it "Activity"
-	colnames(data_train_y) <- c("Activity")
-
-	## now we read the last dataset from the training dataset from the file subject_train.txt
-	data_train_subject <- read.table("C:\\data\\UCI HAR Dataset\\train\\subject_train.txt", header = FALSE)
-	
-	## we also apply a proper column name here and call it "Subject"
-	colnames(data_train_subject) <- c("Subject")
-
-	###############################
-	## Data Merging
-	###############################
-	## After read each data file we are stitching it all together, we start by stitching the complete test dataset together
-	data_test_x <- cbind(data_test_x, data_test_y)
-	data_test_x <- cbind(data_test_x, data_test_subject)
-
-	## now we stich all training data together in one table
-	data_train_x <- cbind(data_train_x, data_train_y)
-	data_train_x <- cbind(data_train_x, data_train_subject)
-
-	## at the end we merge the test datset with the training dataset
-	all_data <- rbind(data_test_x, data_train_x)
- 
-	###############################
-	## Subsetting, Aggregation and Export
-	###############################
- 	
-	## we are only interested in the mean and standard-deviation columns of the data    
-	mean_and_std <- grepl("mean\\(\\)|std\\(\\)", col_labels$V2)
-	all_data <- all_data[,mean_and_std]
-
-	## Now we aggregate the relevant data by Subject and Activity and calculate means
-	all_agg <- aggregate(. ~ Subject + Activity, data = all_data, FUN = mean)
-	## Before exporting the tidy dataset we replace the activity codes with readable labels
-	all_agg$Activity <- factor(all_agg$Activity, labels = activity_names)
-
-	## now we write tidy dataset into a new file and format it nicely
-      write.table(all_agg, file="./tidy_data_set.txt", sep="\t", row.names=FALSE)
-}
+For more information please read the CodeBook.md file.
